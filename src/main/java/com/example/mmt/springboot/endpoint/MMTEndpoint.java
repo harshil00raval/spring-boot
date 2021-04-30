@@ -1,21 +1,17 @@
 package com.example.mmt.springboot.endpoint;
 
 import com.example.mmt.springboot.domain.transport.Flight;
-import com.example.mmt.springboot.dto.PossibleRoutesList;
 import com.example.mmt.springboot.mapper.PossibleRouteListResponseMapper;
 import com.example.mmt.springboot.resourcebean.HelloWorldResourceBean;
 import com.example.mmt.springboot.service.RouteFinderService;
-import com.example.mmt.springboot.utility.timeutils.TimeUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 public class MMTEndpoint {
