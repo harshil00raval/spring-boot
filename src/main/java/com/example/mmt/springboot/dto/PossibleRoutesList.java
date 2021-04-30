@@ -22,10 +22,12 @@ public class PossibleRoutesList {
     public String toString(){
         return "[ { "
                 +String.join(
-                        ",",
+                        ", ",
                         directRouteList.stream().map(s->s.toString()).collect(Collectors.toList()))
-                +" } { "
-                +inDirectRouteList.stream().map(s->s.toString()).collect(Collectors.toList())
+                +" } , { "
+                +String.join(
+                        ", ",
+                        inDirectRouteList.stream().map(s->s.toString()).collect(Collectors.toList()))
                 +" } ] ";
     }
 }

@@ -14,6 +14,6 @@ public class FlightInfo {
     private Integer totalTIme;
 
     public String toString(){
-        return " { "+flightNumbers+ " : " + totalTIme+" } ";
+        return " { "+"\'"+flightNumbers+"\'"+ " : " + totalTIme+" } ";
     }
 }

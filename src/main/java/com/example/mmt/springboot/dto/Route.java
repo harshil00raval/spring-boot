@@ -14,6 +14,6 @@ public class Route {
     private final FlightInfo flightInfo;
 
     public String toString(){
-        return route+" : "+flightInfo.toString();
+        return "\'"+route+"\'"+" : "+flightInfo.toString();
     }
 }
