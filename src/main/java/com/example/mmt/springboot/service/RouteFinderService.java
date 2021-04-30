@@ -3,18 +3,23 @@ package com.example.mmt.springboot.service;
 import com.example.mmt.springboot.dao.filereader.AirportCountryFileReaderDao;
 import com.example.mmt.springboot.domain.AirportFlightNetwork;
 import com.example.mmt.springboot.domain.transport.Flight;
+import com.example.mmt.springboot.dto.FlightInfo;
+import com.example.mmt.springboot.utility.flightsutils.FlightsUtils;
 import com.example.mmt.springboot.utility.stringutils.StringUtils;
 import com.example.mmt.springboot.utility.timeutils.TimeUtils;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.util.*;
 import java.util.stream.Collectors;
 
 // this will take 2 airports and find all routes between them
 // we are using modified adjacency List to represent our graph
+@Service
 public class RouteFinderService {
 
-//    List<List<String>> routeList = new ArrayList<>();
-//    List<String> route;
+    static Map<String, List<List<String>>> allRoutes ;
 
     public Map<String, List<List<String>>> getAllRoutesFromSourceToDestination(Set<String> airportSet)
     {
@@ -30,13 +35,17 @@ public class RouteFinderService {
             route.add(source);
 
             List<List<String>> routeList = new ArrayList<>();
-            getAllRoutesUtil(source, destination, visitedSet, 0, route, routeList);
+            getAllRoutesUtil(source, destination, visitedSet, 0, route,
+                    routeList);
             routeList.sort(Comparator.comparingInt(List::size));
-            List<List<String>> feasiblePaths = createListOfFeasibleFlightPaths(routeList);
-            sourceToDestinationRoutes.put(source+"_"+destination, feasiblePaths);
+            List<List<String>> feasiblePaths = createListOfFeasibleFlightPaths(
+                    routeList);
+            sourceToDestinationRoutes
+                    .put(source + "_" + destination, feasiblePaths);
 
         }
 
+        allRoutes = sourceToDestinationRoutes;
         return sourceToDestinationRoutes;
     }
 
@@ -44,7 +53,7 @@ public class RouteFinderService {
     {
         //unable to find a use case for more than 9 hops
         //takes too much time when no 6 or more
-        if(hops>3)
+        if(hops>2)
             return;
         if (source.equals(destination)) {
 //            for(String s: route)
@@ -101,6 +110,7 @@ public class RouteFinderService {
 
     private static List<List<String>> createListOfFeasibleFlightPaths(List<List<String>> sourceToDestinationRoutes){
         List<List<List<String>>> allFlightsForGivenSourceAndDestination = getFlightDetailsV1(sourceToDestinationRoutes);
+        List<List<List<Flight>>> allFlightsForGivenSourceAndDestination1 = getFlightDetails(sourceToDestinationRoutes);
         List<List<String>> listOfDirectFlights = new ArrayList<>();
         List<List<String>> listOfIndirectFlights = new ArrayList<>();
         List<List<String>> listOfFeasibleFlights = new ArrayList<>();
@@ -109,7 +119,8 @@ public class RouteFinderService {
             //direct flight
             if(flightCombinations.size() == 1) {
                 listOfDirectFlights.add(new ArrayList<>(flightCombinations.get(0)));
-                Collections.sort(listOfDirectFlights.get(0), directFlightsComparator);
+                //create the
+                Collections.sort(listOfDirectFlights.get(0), FlightsUtils.directFlightsComparator);
             }
             else{
                 List<String> flightPaths = new ArrayList<>();
@@ -119,9 +130,9 @@ public class RouteFinderService {
         }
         List<String> indirectFlights = listOfIndirectFlights.stream().flatMap(List::stream).collect(
                 Collectors.toList());
-        Collections.sort(indirectFlights, inDirectFlightsComparator);
+        Collections.sort(indirectFlights, FlightsUtils.inDirectFlightsComparator);
 
-        if (listOfFeasibleFlights.size() >= 1) {
+        if (listOfDirectFlights.size() >= 1) {
             listOfFeasibleFlights
                     .add(new ArrayList<>(listOfDirectFlights.get(0)));
         } else {
@@ -131,70 +142,6 @@ public class RouteFinderService {
         return listOfFeasibleFlights;
     }
 
-    private static void print(List<String> indirectFlights){
-
-        for(String str : indirectFlights){
-            List<String> flight1List = stringSplit(str);
-            int fl1Time = TimeUtils.timeInMinutes(AirportFlightNetwork.flightMap.get(flight1List.get(0)).getStartTime(), AirportFlightNetwork.flightMap.get(flight1List.get(0)).getEndTime()) ;
-            for(int i = 1 ; i < flight1List.size() ; ++i){
-                fl1Time += TimeUtils.timeInMinutes(AirportFlightNetwork.flightMap.get(flight1List.get(i)).getStartTime(), AirportFlightNetwork.flightMap.get(flight1List.get(i)).getEndTime())
-                        + TimeUtils.timeDifference(AirportFlightNetwork.flightMap.get(flight1List.get(i-1)).getEndTime(), AirportFlightNetwork.flightMap.get(flight1List.get(i)).getStartTime());
-            }
-            System.out.println(flight1List +" time : "+ fl1Time);
-        }
-
-    }
-
-    private static Comparator<String> directFlightsComparator = new Comparator<String>() {
-
-        @Override
-        public int compare(String flightNo1, String flightNo2) {
-
-            Integer fl1Time = TimeUtils.timeInMinutes(AirportFlightNetwork.flightMap.get(flightNo1).getStartTime(), AirportFlightNetwork.flightMap.get(flightNo1).getEndTime());
-            Integer fl2Time = TimeUtils.timeInMinutes(AirportFlightNetwork.flightMap.get(flightNo2).getStartTime(), AirportFlightNetwork.flightMap.get(flightNo2).getEndTime());
-
-            return (int) (fl1Time - fl2Time);
-        }
-    };
-
-
-
-    private static Comparator<String> inDirectFlightsComparator = new Comparator<String>() {
-
-        @Override
-        public int compare(String flightNo1, String flightNo2) {
-
-            List<String> flight1List = stringSplit(flightNo1);
-            List<String> flight2List = stringSplit(flightNo2);
-
-            int fl1Time = TimeUtils.timeInMinutes(AirportFlightNetwork.flightMap.get(flight1List.get(0)).getStartTime(), AirportFlightNetwork.flightMap.get(flight1List.get(0)).getEndTime()) ;
-            for(int i = 1 ; i < flight1List.size() ; ++i){
-                fl1Time += TimeUtils.timeInMinutes(AirportFlightNetwork.flightMap.get(flight1List.get(i)).getStartTime(), AirportFlightNetwork.flightMap.get(flight1List.get(i)).getEndTime())
-                        + TimeUtils.timeDifference(AirportFlightNetwork.flightMap.get(flight1List.get(i-1)).getEndTime(), AirportFlightNetwork.flightMap.get(flight1List.get(i)).getStartTime());
-            }
-            int fl2Time = TimeUtils.timeInMinutes(AirportFlightNetwork.flightMap.get(flight2List.get(0)).getStartTime(), AirportFlightNetwork.flightMap.get(flight2List.get(0)).getEndTime()) ;
-            for(int i = 1 ; i < flight2List.size()  ; ++i){
-                fl2Time += TimeUtils.timeInMinutes(AirportFlightNetwork.flightMap.get(flight2List.get(i)).getStartTime(), AirportFlightNetwork.flightMap.get(flight2List.get(i)).getEndTime())
-                        + TimeUtils.timeDifference(AirportFlightNetwork.flightMap.get(flight2List.get(i-1)).getEndTime(), AirportFlightNetwork.flightMap.get(flight2List.get(i)).getStartTime());
-            }
-
-//            System.out.println(fl1Time +" - "+ fl2Time+ "="+ (fl1Time - fl2Time));
-            return (int) (fl1Time - fl2Time);
-        }
-    };
-
-    public static List<String> stringSplit(String flightPath){
-
-        String flightsData[] = flightPath.split("_");
-        List<String> flightKey = new ArrayList<>();
-        for(int i=0; i< flightsData.length-2 ; ){
-            String key = flightsData[i]+"_"+flightsData[i+1]+"_"+flightsData[i+2];
-            flightKey.add(key);
-            i = i+3;
-        }
-        return flightKey;
-    }
-
     private static  List<List<List<Flight>>> getFlightDetails( List<List<String>> sourceToDestinationRoutes){
 
         List<List<List<Flight>>> listOfListOfListOfFlights = new ArrayList<>();
@@ -202,12 +149,15 @@ public class RouteFinderService {
             List<List<Flight>> listOfListOfFlights = new ArrayList<>();
             List<Flight> listOfFlights = new ArrayList<>();
             for(int i=0; i< sourceToDestinationRoute.size()-1;++i){
-                listOfFlights = AirportFlightNetwork.adjListOfAirports
-                                    .get(sourceToDestinationRoute.get(i))
-                                    .get(sourceToDestinationRoute.get(i+1));
-                listOfListOfFlights.add(new ArrayList<>(listOfFlights));
+                String src = sourceToDestinationRoute.get(i);
+                String dest = sourceToDestinationRoute.get(i+1);
+                String keyAppender = "_"+src+"_"+dest;
+                listOfFlights = new ArrayList<>(
+                        AirportFlightNetwork.adjListOfAirports.get(src)
+                                .get(dest));
+                listOfListOfFlights.add(new ArrayList<>(listOfFlights).stream().collect(
+                        Collectors.toList()));
             }
-
             listOfListOfListOfFlights.add(listOfListOfFlights);
         }
         return listOfListOfListOfFlights;
@@ -218,17 +168,19 @@ public class RouteFinderService {
         List<List<List<String>>> listOfListOfListOfFlights = new ArrayList<>();
         for(List<String> sourceToDestinationRoute : sourceToDestinationRoutes){
             List<List<String>> listOfListOfFlights = new ArrayList<>();
-            List<String> listOfFlights = new ArrayList<>();
+            List<String> listOfFlights;
             for(int i=0; i< sourceToDestinationRoute.size()-1;++i){
                 String src = sourceToDestinationRoute.get(i);
                 String dest = sourceToDestinationRoute.get(i+1);
-                String keyAppander = "_"+src+"_"+dest;
+                String keyAppender = "_"+src+"_"+dest;
                 listOfFlights = AirportFlightNetwork.adjListOfAirports
                         .get(src)
                         .get(dest).stream().map(s ->s.getFlightNo()).collect(
                                 Collectors.toList());
 
-                listOfListOfFlights.add(new ArrayList<>(listOfFlights).stream().map(flightkey -> flightkey+keyAppander).collect(
+//                Flight flight = AirportFlightNetwork.flightMap.get(src);
+//                int fl1Time = TimeUtils.timeInMinutes(flight.getStartTime(), flight.getEndTime());
+                listOfListOfFlights.add(new ArrayList<>(listOfFlights).stream().map(flightkey -> flightkey+keyAppender).collect(
                         Collectors.toList()));
             }
 
@@ -246,5 +198,20 @@ public class RouteFinderService {
         for (int i = 0; i < flightPathsList.get(depth).size(); i++) {
             generateFlight(flightPathsList, flightPaths, depth + 1, current + separator+ flightPathsList.get(depth).get(i));
         }
+    }
+
+    @PostConstruct
+    private void init(){
+        AirportNetworkCreatorService airportNetworkCreatorService = new AirportNetworkCreatorService();
+        airportNetworkCreatorService.triggerAirportNetworkCreation();
+        airportNetworkCreatorService.routes();
+    }
+
+    public static List<List<String>> getListOfRoute(String source, String destination){
+        return allRoutes.get(source+"_"+destination);
+    }
+
+    public List<List<String>> getRoutes(String source, String destination){
+        return getListOfRoute(source,destination);
     }
 }

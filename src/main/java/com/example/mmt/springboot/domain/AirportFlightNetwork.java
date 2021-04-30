@@ -9,7 +9,7 @@ public class AirportFlightNetwork {
     private final Set<String> airportSet;
     public static Map<String, Map<String, List<Flight>>> adjListOfAirports;
 
-    public static Map<String, Flight> flightMap;
+    public static Map<String, List<Flight>> flightMap;
 
     public AirportFlightNetwork(Set<String> airportSet)
     {
@@ -68,7 +68,14 @@ public class AirportFlightNetwork {
             }
         }
         flightList.add(flight);
-        String Key = flight.getFlightNo()+"_"+ flight.getSource()+"_"+flight.getDestination();
-        flightMap.put(Key,flight);
+        String key = flight.getFlightNo()+"_"+ flight.getSource()+"_"+flight.getDestination();
+        List<Flight> fl;
+        if(!flightMap.containsKey(key)){
+            fl = new ArrayList<>();
+        }else{
+            fl = flightMap.get(key);
+        }
+        fl.add(flight);
+        flightMap.put(key,fl);
     }
 }
