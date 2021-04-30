@@ -6,15 +6,26 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @AllArgsConstructor
 @Getter
 @Builder
 public class PossibleRoutesList {
 
-    @JsonProperty("directRouteList")
+//    @JsonProperty("directRouteList")
     private final List<Route> directRouteList;
 
-    @JsonProperty("inDirectRouteList")
+//    @JsonProperty("inDirectRouteList")
     private final List<Route> inDirectRouteList;
+
+    public String toString(){
+        return "[ { "
+                +String.join(
+                        ",",
+                        directRouteList.stream().map(s->s.toString()).collect(Collectors.toList()))
+                +" } { "
+                +inDirectRouteList.stream().map(s->s.toString()).collect(Collectors.toList())
+                +" } ] ";
+    }
 }

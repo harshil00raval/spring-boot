@@ -4,10 +4,7 @@ import com.example.mmt.springboot.domain.AirportFlightNetwork;
 import com.example.mmt.springboot.domain.transport.Flight;
 import com.example.mmt.springboot.utility.timeutils.TimeUtils;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class FlightsUtils {
 
@@ -91,6 +88,17 @@ public class FlightsUtils {
                     + TimeUtils.timeDifference(flights.get(i-1).getEndTime(), flights.get(i).getStartTime());
         }
         return flTime;
+    }
+
+    public static String getAirportString(List<Flight> flights){
+
+        List<String> airports = new ArrayList<>();
+        for(Flight flight : flights){
+            airports.add(flight.getSource());
+        }
+        airports.add(flights.get(flights.size()-1).getDestination());
+        return String.join("_",airports);
+
     }
 
     public static void print(List<String> indirectFlights){

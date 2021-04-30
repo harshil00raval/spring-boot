@@ -12,4 +12,8 @@ public class FlightInfo {
 
     @JsonProperty("totalTime")
     private Integer totalTIme;
+
+    public String toString(){
+        return " { "+flightNumbers+ " : " + totalTIme+" } ";
+    }
 }

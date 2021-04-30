@@ -1,6 +1,8 @@
 package com.example.mmt.springboot.endpoint;
 
 import com.example.mmt.springboot.domain.transport.Flight;
+import com.example.mmt.springboot.dto.PossibleRoutesList;
+import com.example.mmt.springboot.mapper.PossibleRouteListResponseMapper;
 import com.example.mmt.springboot.resourcebean.HelloWorldResourceBean;
 import com.example.mmt.springboot.service.RouteFinderService;
 import com.example.mmt.springboot.utility.timeutils.TimeUtils;
@@ -32,22 +34,8 @@ public class MMTEndpoint {
     }
 
     @RequestMapping(method = RequestMethod.GET , path = "/get-flights")
-    public void getFlights(@RequestParam String source, @RequestParam String destination, @RequestParam Integer kNoOfRoutes){
+    public String getFlights(@RequestParam String source, @RequestParam String destination, @RequestParam Integer kNoOfRoutes){
         List<List<ImmutablePair<List<Flight>, Integer>>> routes = routeFinderService.getRoutes(source, destination);
-        for(List<ImmutablePair<List<Flight>, Integer>> listOfFlight : routes){
-            for(ImmutablePair<List<Flight>, Integer> flights : listOfFlight){
-                List<Flight> fls = flights.getLeft();
-                Integer time = flights.getRight();
-                for(Flight fl : fls) {
-
-                    System.out.println(
-                            fl.getFlightNo() + " " + fl.getSource() + " " + fl.getDestination()
-                                    + " " + fl.getStartTime() + " " + fl.getEndTime()
-                                    + " " + TimeUtils
-                                    .timeInMinutes(fl.getStartTime(), fl.getEndTime()));
-                }
-                System.out.println(time);
-            }
-        }
+        return PossibleRouteListResponseMapper.mapToPossibleRouteList(routes, kNoOfRoutes).toString();
     }
 }

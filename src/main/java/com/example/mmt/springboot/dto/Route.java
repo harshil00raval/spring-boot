@@ -12,4 +12,8 @@ public class Route {
 
     @JsonProperty("flightInfo")
     private final FlightInfo flightInfo;
+
+    public String toString(){
+        return route+" : "+flightInfo.toString();
+    }
 }
