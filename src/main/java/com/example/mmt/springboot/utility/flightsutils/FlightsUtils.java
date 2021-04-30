@@ -1,11 +1,13 @@
 package com.example.mmt.springboot.utility.flightsutils;
 
 import com.example.mmt.springboot.domain.AirportFlightNetwork;
+import com.example.mmt.springboot.domain.transport.Flight;
 import com.example.mmt.springboot.utility.timeutils.TimeUtils;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 public class FlightsUtils {
 
@@ -59,6 +61,37 @@ public class FlightsUtils {
             return (fl1Time - fl2Time);
         }
     };
+
+    public static Comparator<Flight> directFlightsComparatorV1 = new Comparator<Flight>() {
+
+        @Override
+        public int compare(Flight flightNo1, Flight flightNo2) {
+
+            Integer fl1Time = TimeUtils.timeInMinutes(flightNo1.getStartTime(), flightNo1.getEndTime());
+            Integer fl2Time = TimeUtils.timeInMinutes(flightNo2.getStartTime(), flightNo2.getEndTime());
+
+            return (fl1Time - fl2Time);
+        }
+    };
+    public static Comparator<List<Flight>> inDirectFlightsComparatorV1 = new Comparator<List<Flight>>() {
+
+        @Override
+        public int compare(List<Flight> flightNo1, List<Flight> flightNo2) {
+
+            int fl1Time = getTimeForFlights(flightNo1);
+            int fl2Time = getTimeForFlights(flightNo2);
+            return (fl1Time - fl2Time);
+        }
+    };
+
+    public static Integer getTimeForFlights(List<Flight> flights){
+        int flTime = TimeUtils.timeInMinutes(flights.get(0).getStartTime(), flights.get(0).getEndTime()) ;
+        for(int i = 1 ; i < flights.size() ; ++i){
+            flTime += TimeUtils.timeInMinutes(flights.get(i).getStartTime(), flights.get(i).getEndTime())
+                    + TimeUtils.timeDifference(flights.get(i-1).getEndTime(), flights.get(i).getStartTime());
+        }
+        return flTime;
+    }
 
     public static void print(List<String> indirectFlights){
 

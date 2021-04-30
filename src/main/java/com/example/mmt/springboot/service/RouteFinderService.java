@@ -3,11 +3,10 @@ package com.example.mmt.springboot.service;
 import com.example.mmt.springboot.dao.filereader.AirportCountryFileReaderDao;
 import com.example.mmt.springboot.domain.AirportFlightNetwork;
 import com.example.mmt.springboot.domain.transport.Flight;
-import com.example.mmt.springboot.dto.FlightInfo;
 import com.example.mmt.springboot.utility.flightsutils.FlightsUtils;
 import com.example.mmt.springboot.utility.stringutils.StringUtils;
 import com.example.mmt.springboot.utility.timeutils.TimeUtils;
-import org.springframework.stereotype.Component;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -19,12 +18,12 @@ import java.util.stream.Collectors;
 @Service
 public class RouteFinderService {
 
-    static Map<String, List<List<String>>> allRoutes ;
+    static Map<String, List<List<ImmutablePair<List<Flight>, Integer>>>> allRoutes ;
 
-    public Map<String, List<List<String>>> getAllRoutesFromSourceToDestination(Set<String> airportSet)
+    public Map<String, List<List<ImmutablePair<List<Flight>, Integer>>>> getAllRoutesFromSourceToDestination(Set<String> airportSet)
     {
         Set<String> visitedSet = new HashSet<>();
-        Map<String, List<List<String>>> sourceToDestinationRoutes= new HashMap<>();
+        Map<String, List<List<ImmutablePair<List<Flight>, Integer>>>> sourceToDestinationRoutes= new HashMap<>();
 
         List<String[]> airportCombinations = StringUtils.combination(airportSet);
         for(String[] airportCombination : airportCombinations){
@@ -38,7 +37,7 @@ public class RouteFinderService {
             getAllRoutesUtil(source, destination, visitedSet, 0, route,
                     routeList);
             routeList.sort(Comparator.comparingInt(List::size));
-            List<List<String>> feasiblePaths = createListOfFeasibleFlightPaths(
+            List<List<ImmutablePair<List<Flight>, Integer>>> feasiblePaths = createListOfFeasibleFlightPathsV1(
                     routeList);
             sourceToDestinationRoutes
                     .put(source + "_" + destination, feasiblePaths);
@@ -142,6 +141,66 @@ public class RouteFinderService {
         return listOfFeasibleFlights;
     }
 
+    private static List<List<ImmutablePair<List<Flight>, Integer>>> createListOfFeasibleFlightPathsV1(List<List<String>> sourceToDestinationRoutes){
+        List<List<List<Flight>>> allFlightsForGivenSourceAndDestination = getFlightDetails(sourceToDestinationRoutes);
+        List<List<Flight>> listOfDirectFlights = new ArrayList<>();
+        List<List<Flight>> listOfIndirectFlights = new ArrayList<>();
+        List<ImmutablePair<List<Flight>, Integer>> directFlightsPairs = new ArrayList<>();
+        List<ImmutablePair<List<Flight>, Integer>> inDirectFlightsPairs = new ArrayList<>();
+        List<List<ImmutablePair<List<Flight>, Integer>>> listOfFeasibleFlights = new ArrayList<>();
+
+        for(List<List<Flight>> flightCombinations : allFlightsForGivenSourceAndDestination){
+            //direct flight
+            if(flightCombinations.size() == 1) {
+                listOfDirectFlights.add(new ArrayList<>(flightCombinations.get(0)));
+                listOfDirectFlights.get(0)
+                        .sort(FlightsUtils.directFlightsComparatorV1);
+                for(List<Flight> flights : listOfDirectFlights){
+                    directFlightsPairs.add(new ImmutablePair<>(flights,0));
+                }
+            }
+            //indirect flight
+            else{
+                List<List<Flight>> flightPaths = new ArrayList<>();
+                generateFlightV1(flightCombinations, flightPaths, 0, null);
+                List<Flight> fastestFlightRoute = removeDuplicatePaths(flightPaths);
+                listOfIndirectFlights.add(new ArrayList<>(fastestFlightRoute));
+            }
+        }
+        Collections.sort(listOfIndirectFlights, FlightsUtils.inDirectFlightsComparatorV1);
+        for(List<Flight> flights : listOfIndirectFlights){
+            Integer time = FlightsUtils.getTimeForFlights(flights);
+            inDirectFlightsPairs.add(new ImmutablePair<>(flights,time));
+        }
+
+        if (listOfDirectFlights.size() >= 1) {
+            listOfFeasibleFlights
+                    .add(new ArrayList<>(directFlightsPairs));
+        } else {
+            listOfFeasibleFlights.add(new ArrayList<>());
+        }
+        listOfFeasibleFlights.add(inDirectFlightsPairs);
+        return listOfFeasibleFlights;
+    }
+
+    private static List<Flight> removeDuplicatePaths(List<List<Flight>> flightsOnSameRoute){
+        Integer travelTime = Integer.MAX_VALUE;
+        List<Flight> fastestFlightsOnTheRoute = new ArrayList<>();
+        for(List<Flight> flights : flightsOnSameRoute){
+            Integer flTime = TimeUtils.timeInMinutes(flights.get(0).getStartTime(), flights.get(0).getEndTime()) ;
+            for(int i = 1 ; i < flights.size() ; ++i){
+                flTime += TimeUtils.timeInMinutes((flights.get(i)).getStartTime(), (flights.get(i)).getEndTime())
+                        + TimeUtils.timeDifference((flights.get(i-1)).getEndTime(), (flights.get(i)).getStartTime());
+            }
+            if(flTime < travelTime){
+                travelTime = flTime;
+                fastestFlightsOnTheRoute.clear();
+                fastestFlightsOnTheRoute.addAll(flights);
+            }
+        }
+        return fastestFlightsOnTheRoute;
+    }
+
     private static  List<List<List<Flight>>> getFlightDetails( List<List<String>> sourceToDestinationRoutes){
 
         List<List<List<Flight>>> listOfListOfListOfFlights = new ArrayList<>();
@@ -200,6 +259,21 @@ public class RouteFinderService {
         }
     }
 
+    private static void generateFlightV1(List<List<Flight>> flightPathsList, List<List<Flight>> flightPaths, int depth, List<Flight> current) {
+        if (depth == flightPathsList.size()) {
+            flightPaths.add(new ArrayList<>(current));
+            return;
+        }
+        if(!Objects.nonNull(current)){
+            current = new ArrayList<>();
+        }
+        for (int i = 0; i < flightPathsList.get(depth).size(); i++) {
+            current.add(flightPathsList.get(depth).get(i));
+            generateFlightV1(flightPathsList, flightPaths, depth + 1, current);
+            current.remove(current.size()-1);
+        }
+    }
+
     @PostConstruct
     private void init(){
         AirportNetworkCreatorService airportNetworkCreatorService = new AirportNetworkCreatorService();
@@ -207,11 +281,11 @@ public class RouteFinderService {
         airportNetworkCreatorService.routes();
     }
 
-    public static List<List<String>> getListOfRoute(String source, String destination){
+    public static List<List<ImmutablePair<List<Flight>, Integer>>> getListOfRoute(String source, String destination){
         return allRoutes.get(source+"_"+destination);
     }
 
-    public List<List<String>> getRoutes(String source, String destination){
+    public List<List<ImmutablePair<List<Flight>, Integer>>> getRoutes(String source, String destination){
         return getListOfRoute(source,destination);
     }
 }
