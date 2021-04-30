@@ -16,18 +16,10 @@ public class AirportNetworkCreatorService {
 
     Set<String> airportSet;
 
-//    public static void main(String[] args) {
-//        AirportNetworkCreatorService airportNetworkCreatorService = new AirportNetworkCreatorService();
-//        airportNetworkCreatorService.triggerAirportNetworkCreation();
-//        airportNetworkCreatorService.routes();
-//    }
-
-
     public void triggerAirportNetworkCreation(){
         BaseDao flightsFileReader = new FlightsFileReaderDao();
         List<Flight> flightList = ((FlightsFileReaderDao) flightsFileReader).processInputFile("src/main/resources/static/ivtest-sched.csv");
 
-//        List<Flight> flightList = ((FlightsFileReaderDao) flightsFileReader).processInputFile("src/main/resources/static/Test.csv");
         airportSet = new HashSet<>();
 
         for(Flight flight: flightList){
@@ -39,12 +31,10 @@ public class AirportNetworkCreatorService {
         for(Flight flight: flightList){
             airportFlightNetwork.addFlight(flight);
         }
-
     }
 
     public void routes(){
         RouteFinderService routeFinderService = new RouteFinderService();
         routeFinderService.getAllRoutesFromSourceToDestination(airportSet);
     }
-
 }
