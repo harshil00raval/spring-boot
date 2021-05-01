@@ -20,7 +20,7 @@ public class RouteFinderService {
     //unable to find a use case for more than 9 hops
     //takes too much time when no 4 or more
     //Checked MMT. it provides flight with max 3 hops
-    private static final Integer noOfHops = 3;
+    private static final Integer NO_OF_HOPS = 3;
 
     static Map<String, List<List<ImmutablePair<List<Flight>, Integer>>>> allRoutes ;
 
@@ -53,7 +53,7 @@ public class RouteFinderService {
 
     private static void getAllRoutesUtil(String source, String destination, Set<String> visitedSet, Integer hops, List<String> route, List<List<String>> routeList)
     {
-        if(hops>noOfHops)
+        if(hops>NO_OF_HOPS)
             return;
         if (source.equals(destination)) {
             if(filterUnfeasibleRoute(route)){
