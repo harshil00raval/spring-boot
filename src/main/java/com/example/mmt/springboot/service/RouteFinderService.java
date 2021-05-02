@@ -1,7 +1,6 @@
 package com.example.mmt.springboot.service;
 
 import com.example.mmt.springboot.dao.filereader.AirportCountryFileReaderDao;
-import com.example.mmt.springboot.domain.AirportFlightNetwork;
 import com.example.mmt.springboot.domain.transport.Flight;
 import com.example.mmt.springboot.utility.flightsutils.FlightsUtils;
 import com.example.mmt.springboot.utility.stringutils.StringUtils;
@@ -20,9 +19,16 @@ public class RouteFinderService {
     //unable to find a use case for more than 9 hops
     //takes too much time when no 4 or more
     //Checked MMT. it provides flight with max 3 hops
-    private static final Integer NO_OF_HOPS = 3;
+    private static final Integer NO_OF_HOPS = 2;
 
     static Map<String, List<List<ImmutablePair<List<Flight>, Integer>>>> allRoutes ;
+
+    private final AirportNetworkCreatorService airportNetworkCreatorService;
+
+    public RouteFinderService(
+            AirportNetworkCreatorService airportNetworkCreatorService) {
+        this.airportNetworkCreatorService = airportNetworkCreatorService;
+    }
 
     public static void getAllRoutesFromSourceToDestination(Set<String> airportSet)
     {
@@ -64,7 +70,7 @@ public class RouteFinderService {
         visitedSet.add(source);
 
         // for all the airports adjacent to current airport
-        for(String intermediateAirport : AirportFlightNetwork.adjListOfAirports.get(source).keySet()){
+        for(String intermediateAirport : AirportNetworkCreatorService.adjListOfAirports.get(source).keySet()){
             if(!visitedSet.contains(intermediateAirport)){
                 route.add(intermediateAirport);
                 getAllRoutesUtil(intermediateAirport, destination, visitedSet, ++hops, route, routeList);
@@ -117,7 +123,7 @@ public class RouteFinderService {
             if(flightCombinations.size() == 1) {
                 listOfDirectFlights.add(new ArrayList<>(flightCombinations.get(0)));
                 listOfDirectFlights.get(0)
-                        .sort(FlightsUtils.directFlightsComparatorV1);
+                        .sort(FlightsUtils.directFlightsComparator);
                 for(List<Flight> flights : listOfDirectFlights){
                     directFlightsPairs.add(new ImmutablePair<>(flights,0));
                 }
@@ -130,7 +136,7 @@ public class RouteFinderService {
                 listOfIndirectFlights.add(new ArrayList<>(fastestFlightRoute));
             }
         }
-        listOfIndirectFlights.sort(FlightsUtils.inDirectFlightsComparatorV1);
+        listOfIndirectFlights.sort(FlightsUtils.inDirectFlightsComparator);
         for(List<Flight> flights : listOfIndirectFlights){
             Integer time = FlightsUtils.getTimeForFlights(flights);
             inDirectFlightsPairs.add(new ImmutablePair<>(flights,time));
@@ -174,7 +180,7 @@ public class RouteFinderService {
                 String src = sourceToDestinationRoute.get(i);
                 String dest = sourceToDestinationRoute.get(i+1);
                 listOfFlights = new ArrayList<>(
-                        AirportFlightNetwork.adjListOfAirports.get(src)
+                        AirportNetworkCreatorService.adjListOfAirports.get(src)
                                 .get(dest));
                 listOfListOfFlights.add(
                         new ArrayList<>(new ArrayList<>(listOfFlights)));
@@ -201,9 +207,8 @@ public class RouteFinderService {
 
     @PostConstruct
     private void init(){
-        AirportNetworkCreatorService airportNetworkCreatorService = new AirportNetworkCreatorService();
         airportNetworkCreatorService.triggerAirportNetworkCreation();
-        airportNetworkCreatorService.routes();
+        getAllRoutesFromSourceToDestination(airportNetworkCreatorService.getAirportSet());
     }
 
     public static List<List<ImmutablePair<List<Flight>, Integer>>> getListOfRoute(String source, String destination){

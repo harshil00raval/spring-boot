@@ -14,17 +14,9 @@ import java.util.Map;
 // this will read the data from airport country file
 public class AirportCountryFileReaderDao implements BaseDao {
 
-//    public static void main(String[] args) {
-//        AirportCountryFileReaderDao airportCountryFileReaderDao = new AirportCountryFileReaderDao();
-//        airportCountryFileReaderDao.processInputFile("src/main/resources/static/airports-ivtest-countries.json");
-//    }
-//
 
     public static Map<String, String> airportCountryMap =
             processInputFile("src/main/resources/static/airports-ivtest-countries.json");
-//    public Map<String, String> getAirportCountryMapping(){
-//        return processInputFile();
-//    }
 
     private static Map<String, String> processInputFile(String inputFilePath) {
 
