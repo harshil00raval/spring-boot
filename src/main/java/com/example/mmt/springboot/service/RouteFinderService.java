@@ -19,7 +19,7 @@ public class RouteFinderService {
     //unable to find a use case for more than 9 hops
     //takes too much time when no 4 or more
     //Checked MMT. it provides flight with max 3 hops
-    private static final Integer NO_OF_HOPS = 2;
+    private static final Integer NO_OF_HOPS = 3;
 
     static Map<String, List<List<ImmutablePair<List<Flight>, Integer>>>> allRoutes ;
 
